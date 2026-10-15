@@ -1,0 +1,1 @@
+questions_subject = int(input("What is the subject for the 5 trivia questions?\n"))
