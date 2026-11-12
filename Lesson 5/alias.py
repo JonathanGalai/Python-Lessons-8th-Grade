@@ -2,9 +2,8 @@ from google import genai
 from google.genai import types, errors
 import turtle
 import time
-from secret_key import GEMINI_API_KEY
 
-client = genai.Client(api_key=GEMINI_API_KEY)
+client = genai.Client(api_key=AQ.Ab8RN6Ixir9K9l3TiwejYojBMFDBXY4VTGm-mVVTE1ifDUhDHA)
 MODEL = "gemini-3.5-flash"
 BACKUP_MODEL = "gemini-2.5-flash"
 
