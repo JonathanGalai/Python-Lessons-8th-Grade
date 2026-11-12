@@ -1,169 +1,102 @@
 import pygame
 from sys import exit
-import time
+
 pygame.init()
 
+WINDOW_SIZE = (900, 600)
+
+display = pygame.display.set_mode(WINDOW_SIZE)
+pygame.display.set_caption('Lesson 7 - moving characters')
 clock = pygame.time.Clock()
-bulletSound = pygame.mixer.Sound('bullet.mp3')
-hitSound = pygame.mixer.Sound('hit.mp3')
-music = pygame.mixer.music.load('music.mp3')
-pygame.mixer.music.play(-1)
+FPS = 60
 
-win  = pygame.display.set_mode((800,480))
-pygame.display.set_caption('Runner')
-walkRight = [pygame.image.load('R1.png'),pygame.image.load('R2.png'),pygame.image.load('R3.png'),pygame.image.load('R4.png'),pygame.image.load('R5.png'),pygame.image.load('R6.png'),pygame.image.load('R7.png'),pygame.image.load('R8.png'),pygame.image.load('R9.png')]
-walkLeft = [pygame.image.load('L1.png'),pygame.image.load('L2.png'),pygame.image.load('L3.png'),pygame.image.load('L4.png'),pygame.image.load('L5.png'),pygame.image.load('L6.png'),pygame.image.load('L7.png'),pygame.image.load('L8.png'),pygame.image.load('L9.png')]
-EwalkRight = [pygame.image.load('R1E.png'),pygame.image.load('R2E.png'),pygame.image.load('R3E.png'),pygame.image.load('R4E.png'),pygame.image.load('R5E.png'),pygame.image.load('R6E.png'),pygame.image.load('R7E.png'),pygame.image.load('R8E.png'),pygame.image.load('R9E.png'),pygame.image.load('R10E.png'),pygame.image.load('R11E.png')]
-EwalkLeft = [pygame.image.load('L1E.png'),pygame.image.load('L2E.png'),pygame.image.load('L3E.png'),pygame.image.load('L4E.png'),pygame.image.load('L5E.png'),pygame.image.load('L6E.png'),pygame.image.load('L7E.png'),pygame.image.load('L8E.png'),pygame.image.load('L9E.png'),pygame.image.load('L10E.png'),pygame.image.load('L11E.png')]
+# רקע על כל המסך
+bg_image = pygame.image.load('bg (1).jpg')
+bg_image = pygame.transform.scale(bg_image, WINDOW_SIZE)
 
-bg = pygame.image.load('bg.jpg')
-char = pygame.image.load('standing.png')
+# כדור בלי רקע (PNG שקוף) - מקטינים כי המקור גדול
+BALL_W = 80
+BALL_H = 103
+ball_image = pygame.image.load('football-without-background.png').convert_alpha()
+ball_image = pygame.transform.scale(ball_image, (BALL_W, BALL_H))
 
-x = 200
-Ex = 50
-y = 400
-Ey = 400
-height = 64
-width = 64
-vel = 5
-isJump = False
-jumpCount = 10
-left = False
-right = False
-Eleft = True
-Eright = False
-walkCount = 0
-EwalkCount = 0
-bullets = []
-run = True
-facing = 1
-score = 0
-enemy_image = pygame.image.load('L1E.png')
-enemy_rect = enemy_image.get_rect(topleft = (Ex,Ey))
-player_image = pygame.image.load('L1.png')
-player_rect = player_image.get_rect(topleft = (x,y))
-font = pygame.font.SysFont('comicsans',30,True)
+# שני חלזונות - אחד פונה ימינה ואחד שמאלה
+rsnail_image = pygame.image.load('snail_right.png').convert_alpha()
+lsnail_image = pygame.image.load('snail_left.png').convert_alpha()
 
-class projectile(object):
-    def __init__(self,x,y,color,facing):
-        self.x = x
-        self.y = y
-        self.color = color
-        self.facing = facing
-        self.vel = 4*vel
-    def draw(self,win):
-        pygame.draw.circle(win,(0,0,0),(self.x,self.y),6)
+# ---------- הכדור זז לכל הכיוונים ----------
+ball_x = 410
+ball_y = 0
+SPEED_X = 3               # מהירות הכדור ימינה/שמאלה
+SPEED_Y = 4               # מהירות הכדור למעלה/למטה
+ball_speed_x = SPEED_X    # חיובי = ימינה, שלילי = שמאלה
+ball_speed_y = SPEED_Y    # חיובי = למטה, שלילי = למעלה
 
-def exit_game():
-    while True:
-        # הבלטה של תמונה המורה על סיום משחק והניקוד שנצבר
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
+# ---------- החילזון זז עם החצים במקלדת ----------
+SNAIL_W = 128
+SNAIL_H = 138
 
+snail_x = 50
+snail_y = 430
+snail_speed = 4
+current_snail = rsnail_image
 
-def redrawGame():
-    global walkCount
-    global enemy_rect
-    player_rect = player_image.get_rect(topleft=(x, y))
-    enemy_rect = enemy_image.get_rect(topleft=(Ex, Ey))
-    text = font.render('Score: '+str(score),1,(0,0,0))
-    win.blit(bg,(0,0))
-    win.blit(text, (480, 20))
-    win.blit(player_image, player_rect)
-    win.blit(enemy_image, enemy_rect)
-    for bullet in bullets:
-        bullet.draw(win)
+while True:
+    clock.tick(FPS)
 
-    pygame.display.update()
-i=0
-while run:
-    clock.tick(20)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            run = False
-    for bullet in bullets:
-        if bullet.x < 800 and bullet.x > 0:
-            bullet.x += bullet.vel*bullet.facing
-            #print(enemy_rect.midbottom[1]," ",bullet.y,"  ",enemy_rect.midtop[1])
-            #print(enemy_rect.midleft[0], " ", bullet.x, "  ", enemy_rect.midright[0])
+            pygame.quit()
+            exit()
 
-            if ( enemy_rect.midbottom[1] > bullet.y > enemy_rect.midtop[1]
-                and enemy_rect.midleft[0] < bullet.x < enemy_rect.midright[0]):
-                bullets.pop(bullets.index(bullet))
-                hitSound.play()
-                score +=1
-        else:
-            bullets.pop(bullets.index(bullet))
+    # --- הזזת הכדור ---
+    ball_x = ball_x + ball_speed_x
+    ball_y = ball_y + ball_speed_y
 
-
-    if  (Ex == x ):
-        print("collid")
-        print(y,Ey)
-        pygame.time.delay(10000)
+    # --- הזזת החילזון לפי החצים (בלי לצאת מהמסך) ---
     keys = pygame.key.get_pressed()
-    if keys[pygame.K_SPACE]:
-        bulletSound.play()
-        bullets.append(projectile(round(x+width//2),round(y+height//2),(0,0,0),facing))
-        shootLoop = 1
-    if keys[pygame.K_LEFT] and x > vel:
-        player_image  = walkLeft[walkCount]
-        x -= vel
-        right = False
-        left = True
-        walkCount += 1
-        if walkCount + 1 >= 9:
-            walkCount = 0
-    elif keys[pygame.K_RIGHT] and x < 500 -width -vel:
-        player_image = walkRight[walkCount]
-        x+=vel
-        right = True
-        left = False
-        walkCount += 1
-        if walkCount + 1 >= 9:
-            walkCount = 0
-    else:
-        if right:
-            player_image = walkRight[0]
-            facing = 1
-        elif left :
-            player_image = walkLeft[0]
-            facing = -1
-        right = False
-        left = False
-        walkCount = 0
+    if keys[pygame.K_RIGHT] and snail_x < WINDOW_SIZE[0] - SNAIL_W - snail_speed:
+        snail_x = snail_x + snail_speed
+        current_snail = rsnail_image
+    if keys[pygame.K_LEFT] and snail_x > snail_speed:
+        snail_x = snail_x - snail_speed
+        current_snail = lsnail_image
+    if keys[pygame.K_UP] and snail_y > snail_speed:
+        snail_y = snail_y - snail_speed
+    if keys[pygame.K_DOWN] and snail_y < WINDOW_SIZE[1] - SNAIL_H - snail_speed:
+        snail_y = snail_y + snail_speed
 
-    if not(isJump):
-        if keys[pygame.K_UP]:
-            isJump = True
-    else:
-        if jumpCount >= -10:
-            neg = 1
-            if jumpCount < 0:
-                neg = -1
-            y -=(jumpCount ** 2)*0.5*neg
-            jumpCount -=1
+    # --- אם החילזון נוגע בכדור - הכדור משנה כיוון ---
+    ball_rect = ball_image.get_rect(topleft=(ball_x, ball_y))
+    snail_rect = current_snail.get_rect(topleft=(snail_x, snail_y))
+    if ball_rect.colliderect(snail_rect):
+        # הכדור תמיד בורח מהחילזון - גם למעלה/למטה וגם ימינה/שמאלה
+        if ball_rect.centery < snail_rect.centery:
+            ball_speed_y = -SPEED_Y       # הכדור מעל החילזון - עולה למעלה
         else:
-            isJump = False
-            jumpCount = 10
+            ball_speed_y = SPEED_Y        # הכדור מתחת לחילזון - יורד למטה
+        if ball_rect.centerx < snail_rect.centerx:
+            ball_speed_x = -SPEED_X       # הכדור משמאל לחילזון - זז שמאלה
+        else:
+            ball_speed_x = SPEED_X        # הכדור מימין לחילזון - זז ימינה
 
-    if Eleft:
-        enemy_image = EwalkLeft[EwalkCount]
-        Ex = Ex - 2
-        EwalkCount += 1
-        if EwalkCount == 11:
-            EwalkCount = 0
-        if Ex < 0:
-            Eright = True
-            Eleft = False
-    if Eright:
-        enemy_image = EwalkRight[EwalkCount]
-        Ex = Ex + 2
-        EwalkCount += 1
-        if EwalkCount == 11:
-            EwalkCount = 0
-        if Ex > 500:
-            Eright = False
-            Eleft = True
-    redrawGame()
-pygame.quit()
+    # --- אם הכדור נוגע בקיר - משנה כיוון ---
+    # בודקים קירות אחרונים, כדי שהכדור אף פעם לא יברח מהמסך
+    if ball_y <= 0:
+        ball_y = 0
+        ball_speed_y = SPEED_Y            # קיר עליון - יורד למטה
+    if ball_y + BALL_H >= WINDOW_SIZE[1]:
+        ball_y = WINDOW_SIZE[1] - BALL_H
+        ball_speed_y = -SPEED_Y           # קיר תחתון - עולה למעלה
+    if ball_x <= 0:
+        ball_x = 0
+        ball_speed_x = SPEED_X            # קיר שמאלי - זז ימינה
+    if ball_x + BALL_W >= WINDOW_SIZE[0]:
+        ball_x = WINDOW_SIZE[0] - BALL_W
+        ball_speed_x = -SPEED_X           # קיר ימני - זז שמאלה
+
+    # --- ציור: קודם רקע, ואז הדמויות ---
+    display.blit(bg_image, (0, 0))
+    display.blit(ball_image, (ball_x, ball_y))
+    display.blit(current_snail, (snail_x, snail_y))
+    pygame.display.update()
